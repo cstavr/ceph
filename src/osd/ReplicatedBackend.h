@@ -70,7 +70,7 @@ public:
     );
 
   void on_change();
-  void clear_state();
+  void clear_recovery_state();
   void on_flushed();
 
   class RPCRecPred : public IsRecoverablePredicate {
@@ -153,11 +153,12 @@ public:
     const hobject_t &hoid,
     uint64_t off,
     uint64_t len,
+    uint32_t op_flags,
     bufferlist *bl);
 
   void objects_read_async(
     const hobject_t &hoid,
-    const list<pair<pair<uint64_t, uint64_t>,
+    const list<pair<boost::tuple<uint64_t, uint64_t, uint32_t>,
 	       pair<bufferlist*, Context*> > > &to_read,
     Context *on_complete);
 
@@ -343,7 +344,7 @@ public:
     PGTransaction *t,
     const eversion_t &trim_to,
     const eversion_t &trim_rollback_to,
-    vector<pg_log_entry_t> &log_entries,
+    const vector<pg_log_entry_t> &log_entries,
     boost::optional<pg_hit_set_history_t> &hset_history,
     Context *on_local_applied_sync,
     Context *on_all_applied,
@@ -363,7 +364,7 @@ private:
     eversion_t pg_trim_rollback_to,
     hobject_t new_temp_oid,
     hobject_t discard_temp_oid,
-    vector<pg_log_entry_t> &log_entries,
+    const vector<pg_log_entry_t> &log_entries,
     boost::optional<pg_hit_set_history_t> &hset_history,
     InProgressOp *op,
     ObjectStore::Transaction *op_t);

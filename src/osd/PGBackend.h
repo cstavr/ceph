@@ -173,7 +173,7 @@
        const hobject_t &hoid) = 0;
 
      virtual void log_operation(
-       vector<pg_log_entry_t> &logv,
+       const vector<pg_log_entry_t> &logv,
        boost::optional<pg_hit_set_history_t> &hset_history,
        const eversion_t &trim_to,
        const eversion_t &trim_rollback_to,
@@ -310,7 +310,7 @@
     * won't be called after on_change()
     */
    virtual void on_change() = 0;
-   virtual void clear_state() = 0;
+   virtual void clear_recovery_state() = 0;
 
    virtual void on_flushed() = 0;
 
@@ -434,7 +434,8 @@
        const hobject_t &hoid, ///< [in] object to write
        uint64_t off,          ///< [in] off at which to write
        uint64_t len,          ///< [in] len to write from bl
-       bufferlist &bl         ///< [in] bl to write will be claimed to len
+       bufferlist &bl,        ///< [in] bl to write will be claimed to len
+       uint32_t fadvise_flags = 0 ///< [in] fadvise hint
        ) { assert(0); }
      virtual void omap_setkeys(
        const hobject_t &hoid,         ///< [in] object to write
@@ -475,8 +476,9 @@
        const hobject_t &hoid, ///< [in] object to write
        uint64_t off,          ///< [in] off at which to write
        uint64_t len,          ///< [in] len to write from bl
-       bufferlist &bl         ///< [in] bl to write will be claimed to len
-       ) { write(hoid, off, len, bl); }
+       bufferlist &bl,        ///< [in] bl to write will be claimed to len
+       uint32_t fadvise_flags ///< [in] fadvise hint
+       ) { write(hoid, off, len, bl, fadvise_flags); }
 
      /// to_append *must* have come from the same PGBackend (same concrete type)
      virtual void append(
@@ -497,7 +499,7 @@
      PGTransaction *t,                    ///< [in] trans to execute
      const eversion_t &trim_to,           ///< [in] trim log to here
      const eversion_t &trim_rollback_to,  ///< [in] trim rollback info to here
-     vector<pg_log_entry_t> &log_entries, ///< [in] log entries for t
+     const vector<pg_log_entry_t> &log_entries, ///< [in] log entries for t
      /// [in] hitset history (if updated with this transaction)
      boost::optional<pg_hit_set_history_t> &hset_history,
      Context *on_local_applied_sync,      ///< [in] called when applied locally
@@ -572,11 +574,12 @@
      const hobject_t &hoid,
      uint64_t off,
      uint64_t len,
+     uint32_t op_flags,
      bufferlist *bl) = 0;
 
    virtual void objects_read_async(
      const hobject_t &hoid,
-     const list<pair<pair<uint64_t, uint64_t>,
+     const list<pair<boost::tuple<uint64_t, uint64_t, uint32_t>,
 		pair<bufferlist*, Context*> > > &to_read,
      Context *on_complete) = 0;
 
